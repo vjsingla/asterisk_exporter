@@ -6,9 +6,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
 )
+
+var activeChannels, activeCalls, callProcessed prometheus.Gauge
 
 func recordMetrics() {
 	go func() {
@@ -51,12 +54,18 @@ func executeCommand(cmdStr string) (float64, error) {
 
 }
 
-var (
+func main() {
+	h, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+
 	activeChannels = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "asterisk_active_channels",
 		Help: "Total current active channels",
 		ConstLabels: map[string]string{
 			"type": "active channels",
+			"host": h,
 		},
 	})
 	activeCalls = promauto.NewGauge(prometheus.GaugeOpts{
@@ -64,6 +73,7 @@ var (
 		Help: "Total current active calls",
 		ConstLabels: map[string]string{
 			"type": "active calls",
+			"host": h,
 		},
 	})
 	callProcessed = promauto.NewGauge(prometheus.GaugeOpts{
@@ -71,11 +81,10 @@ var (
 		Help: "Total current calls processed",
 		ConstLabels: map[string]string{
 			"type": "calls processed",
+			"host": h,
 		},
 	})
-)
 
-func main() {
 	recordMetrics()
 
 	http.Handle("/metrics", promhttp.Handler())
